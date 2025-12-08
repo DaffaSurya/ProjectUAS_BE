@@ -4,7 +4,8 @@ import (
 	"PROJECTUAS_BE/app/repository"
 	"PROJECTUAS_BE/app/service"
 	"PROJECTUAS_BE/config"
-	"PROJECTUAS_BE/middleware"
+
+	// "PROJECTUAS_BE/middleware"
 	"PROJECTUAS_BE/routes"
 	"context"
 	"fmt"
@@ -38,16 +39,6 @@ func main() {
 	// 🟨 Init Auth + Generate Sample Token
 	// ===============================
 	app := fiber.New()
-	middleware.InitAuth()
-
-	// adminPerms := []string{"manage:system", "manage:users"}
-	// mahasiswaPerms := []string{"create:prestasi", "view:own_prestasi"}
-	// dosenPerms := []string{"verify:prestasi", "view:assigned_prestasi"}
-
-	// adminToken, _ := middleware.GenerateToken(1, "Admin Sistem", "admin", adminPerms)
-	// mhsToken, _ := middleware.GenerateToken(2, "Mahasiswa Budi", "mahasiswa", mahasiswaPerms)
-	// dosenToken, _ := middleware.GenerateToken(3, "Dosen Wali", "dosen", dosenPerms)
-
 	userRepo := repository.NewUserRepository(pgDB)
 	authService := service.NewAuthService(userRepo)
 

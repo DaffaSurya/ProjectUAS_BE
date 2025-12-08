@@ -1,7 +1,8 @@
 package middleware
 
 import (
-	"errors"
+	// "errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -9,32 +10,33 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtSecret []byte
 var defaultExpMinutes int64 = 60 * 24 // 24 Jam
 
 type Claims struct {
-	UserID      int      `json:"user_id"`
-	Name        string   `json:"name"`
+	UserID      string   `json:"user_id"`
+	Name        string   `json:"username"`
+	Email       string   `json:"email"`
 	Role        string   `json:"role"`
 	Permissions []string `json:"permissions"`
 	jwt.RegisteredClaims
 }
 
-func InitAuth() {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "dev_secret_change_me"
+// =====================================================
+// ============ GENERATE TOKEN ==========================
+// =====================================================
+func GenerateToken(userID, name, email, role string, permissions []string) (string, error) {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return "", fmt.Errorf("JWT_SECRET is not set in .env")
 	}
-	jwtSecret = []byte(secret)
-}
 
-func GenerateToken(userID int, name, role string, permissions []string) (string, error) {
 	now := time.Now()
 	exp := now.Add(time.Minute * time.Duration(defaultExpMinutes))
 
 	claims := Claims{
 		UserID:      userID,
 		Name:        name,
+		Email:       email,
 		Role:        role,
 		Permissions: permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -45,23 +47,39 @@ func GenerateToken(userID int, name, role string, permissions []string) (string,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString([]byte(jwtSecret))
 }
 
+// =====================================================
+// ============ PARSE TOKEN ============================
+// =====================================================
 func ParseToken(tokenStr string) (*Claims, error) {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET is not set in .env")
+	}
+
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
+		return []byte(jwtSecret), nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims, nil
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("invalid token")
 	}
-	return nil, errors.New("invalid token")
+
+	return claims, nil
 }
 
+
+
+// =====================================================
+// ============ PASSWORD HELPERS ========================
+// =====================================================
 func HashPassword(password string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(b), err

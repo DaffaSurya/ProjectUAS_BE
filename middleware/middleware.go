@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -8,22 +9,48 @@ import (
 
 func AuthRequired() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "missing token"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "missing token",
+			})
 		}
 
 		parts := strings.Split(authHeader, " ")
+		// Contoh: "Bearer tokenxxxxx"
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token format"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "invalid token format",
+			})
 		}
 
+		tokenStr := parts[1]
+
+		// CEK TOKEN BLACKLIST
+		if IsTokenBlacklisted(tokenStr) { // tidak perlu prefix middleware.
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "token has been revoked",
+			})
+		}
+
+		// Parse JWT
 		claims, err := ParseToken(parts[1])
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "invalid token",
+			})
 		}
 
-		c.Locals("claims", claims)
+		// DEBUG: memastikan claims terbaca
+		fmt.Println("=== MIDDLEWARE CLAIMS ===")
+		fmt.Printf("Email: %s\n", claims.Email) // debugging part
+		fmt.Println("==========================")
+
+		// Simpan ke fiber locals
+		c.Locals("claims", claims)      // bentuk struct claims
+		c.Locals("email", claims.Email) // bisa dipakai jika butuh email saja
+
 		return c.Next()
 	}
 }
