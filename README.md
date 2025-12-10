@@ -16,6 +16,12 @@ Hari senin tanggal 8 desember 2025:
 - Build and repair authentications (login and register)
 - create logout features and GetProfile
 
+Progress ke 4:
+Hari selasa tanggal 9 desember 2025:
+- remove feature register
+- create users endpoint (put, delete , get dan Post)
+
+
 
 
 
