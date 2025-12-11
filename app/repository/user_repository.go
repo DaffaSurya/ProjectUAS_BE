@@ -8,10 +8,12 @@ import (
 
 type UserRepository interface {
 	FindByEmail(Email string) (*model.User, error)
-	CreateUser(username, email, password, roleID, fullname string) error
+	CreateUser(username, email, password, roleID, fullname string) (string, error)
+	// CreateUser(username, email, password, roleID, fullname string) error
 	GetProfile(id string) (*model.User, error)
 	GetAllUsers() ([]model.User, error)
 	GetRoleByUserID(userID string) (string, error)
+	GetRoleNameByRoleID(roleID string) (string, error)
 	GetUserByID(id string) (*model.User, error)
 	UpdateUserByID(id string, name string, email string) error
 	DeleteUserByID(id string) error
@@ -89,14 +91,60 @@ func (r *userPostgres) GetPermissionsByRole(roleName string) ([]string, error) {
 	return perms, nil
 }
 
-func (r *userPostgres) CreateUser(username, email, password, roleID, fullname string) error {
+// func (r *userPostgres) CreateUser(username, email, password, roleID, fullname string) error {
+// 	query := `
+// 		INSERT INTO users (username, email, password_hash, role_id, full_name)
+// 		VALUES ($1, $2, $3, $4, $5)
+// 	`
+
+// 	_, err := r.db.Exec(query, username, email, password, roleID, fullname)
+// 	return err
+// }
+
+func (r *userPostgres) CreateUser(username, email, password, roleID, fullname string) (string, error) {
 	query := `
 		INSERT INTO users (username, email, password_hash, role_id, full_name)
 		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id;
 	`
 
-	_, err := r.db.Exec(query, username, email, password, roleID, fullname)
-	return err
+	var userID string
+	err := r.db.QueryRow(query, username, email, password, roleID, fullname).Scan(&userID)
+	if err != nil {
+		fmt.Println("DB ERROR:", err)
+		return "", err
+	}
+
+	return userID, nil
+}
+
+// func (r *userPostgres) GetRoleNameByRoleID(roleID string) (string, error) {
+// 	query := `SELECT name FROM roles WHERE id = $1 LIMIT 1`
+
+// 	var role string
+// 	err := r.db.QueryRow(query, roleID).Scan(&role)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return role, nil
+// }
+
+func (r *userPostgres) GetRoleNameByRoleID(roleID string) (string, error) {
+	query := "SELECT name FROM roles WHERE id = $1 LIMIT 1"
+
+	var name string
+	err := r.db.QueryRow(query, roleID).Scan(&name)
+
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("role not found")
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	return name, nil
 }
 
 func (r *userPostgres) GetProfile(id string) (*model.User, error) {
@@ -139,6 +187,23 @@ func (r *userPostgres) GetRoleByUserID(userID string) (string, error) {
 
 	return role, nil
 }
+
+// func (r *userPostgres) GetRoleNameByRoleID(roleID string) (string, error) {
+// 	query := `
+//         SELECT name
+//         FROM roles
+//         WHERE id = $1
+//         LIMIT 1;
+//     `
+
+// 	var role string
+// 	err := r.db.QueryRow(query, roleID).Scan(&role)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return role, nil
+// }
 
 // Get Users data
 

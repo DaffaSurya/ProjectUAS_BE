@@ -48,8 +48,9 @@ func AuthRequired() fiber.Handler {
 		fmt.Println("==========================")
 
 		// Simpan ke fiber locals
-		c.Locals("claims", claims)      // bentuk struct claims
-		c.Locals("email", claims.Email) // bisa dipakai jika butuh email saja
+		c.Locals("claims", claims) // bentuk struct claims
+		c.Locals("email", claims.Email)
+		c.Locals("user_id", claims.UserID) // bisa dipakai jika butuh email saja
 
 		return c.Next()
 	}

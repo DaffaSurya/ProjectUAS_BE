@@ -21,6 +21,12 @@ Hari selasa tanggal 9 desember 2025:
 - remove feature register
 - create users endpoint (put, delete , get dan Post)
 
+Progress ke 5:
+Hari Kamis tanggal 11 desember 2025:
+ - create collection achievements di mongoDB
+ - create CRUD achievements
+ - create get all student in table student
+ - create get student by id in table student
 
 
 

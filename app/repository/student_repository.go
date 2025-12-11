@@ -1,0 +1,117 @@
+package repository
+
+import (
+	model "PROJECTUAS_BE/app/Model"
+	"database/sql"
+	"errors"
+)
+
+type StudentRepository interface {
+	CreateStudent(userID string) error
+	GetStudentByUserID(userID string) (*model.Student, error)
+	GetAllStudents() ([]model.Student, error)
+}
+
+type StudentPostgres struct {
+	DB *sql.DB
+}
+
+func NewStudentRepository(db *sql.DB) *StudentPostgres {
+	return &StudentPostgres{DB: db}
+}
+
+func (r *StudentPostgres) CreateStudent(userID string) error {
+	query := `
+		INSERT INTO student (user_id)
+		VALUES ($1)
+	`
+	_, err := r.DB.Exec(query, userID)
+	return err
+}
+
+func (r *StudentPostgres) GetAllStudents() ([]model.Student, error) {
+	query := `
+		SELECT
+			s.id AS student_id,
+			s.user_id,
+			s.academic_year,
+			s.program_study,
+			u.username,
+			u.full_name,
+			u.email
+		FROM students s
+		JOIN users u ON u.id = s.user_id
+	`
+
+	rows, err := r.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var students []model.Student
+
+	for rows.Next() {
+		student := model.Student{}
+		err := rows.Scan(
+			&student.StudentID,
+			&student.UserID,
+			&student.AcademicYear,
+			&student.ProgramStudy,
+			&student.Username,
+			&student.Fullname,
+			&student.Email,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		students = append(students, student)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return students, nil
+}
+
+func (r *StudentPostgres) GetStudentByUserID(userID string) (*model.Student, error) {
+	query := `
+		SELECT
+			s.id AS student_id,
+			s.user_id,
+			s.academic_year,
+			s.program_study,
+			u.username,
+			u.email,
+			u.full_name
+		FROM students s
+		JOIN users u ON u.id = s.user_id
+		WHERE s.user_id = $1
+	`
+
+	row := r.DB.QueryRow(query, userID)
+
+	student := model.Student{}
+	err := row.Scan(
+		&student.StudentID,
+		&student.UserID,
+		&student.AcademicYear,
+		&student.ProgramStudy,
+		&student.Username,
+		&student.Email,
+		&student.Fullname,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New("student not found")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &student, nil
+}

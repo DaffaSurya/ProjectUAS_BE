@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, authservice *service.AuthService) {
+func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservice *service.Studentservice, AchieveService *service.AchievementService) {
 	api := app.Group("/api")
 
 	// authentication Route
@@ -24,9 +24,17 @@ func SetupRoutes(app *fiber.App, authservice *service.AuthService) {
 	api.Put("/users/:id", authservice.UpdateUserByID)
 	api.Delete("/users/:id", authservice.DeleteUserByID)
 
-	// achievement 
+	// achievement
+	api.Get("/achievements", AchieveService.GetAllAchievements)
+	api.Get("/achievements/:id", AchieveService.GetAchievementsByID)
 
-	
+	api.Use(middleware.AuthRequired()) // melindungi agar hanya admin yang bisa mengakses
+	api.Post("/achievements", AchieveService.CreateAchievements)
+	api.Put("/achievements/:id", AchieveService.UpdateAchievement)
+	api.Delete("/achievements/:id", AchieveService.DeleteAchievement)
 
+	// students
+	api.Get("/student/:id", Studentservice.GetStudent)
+	api.Get("/student", Studentservice.GetAllStudents)
 
 }
