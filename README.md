@@ -28,6 +28,10 @@ Hari Kamis tanggal 11 desember 2025:
  - create get all student in table student
  - create get student by id in table student
 
+Progress ke 6:
+Hari selasa tanggal 16 desember 2025:
+- finish Achievements features
+- implementation middleware student and dosen wali
 
 
 

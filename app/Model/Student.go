@@ -3,8 +3,8 @@ package model
 type Student struct {
 	StudentID    string `json:"id"`
 	UserID       string `json:"user_id"`
-	AcademicYear string `json: "academic_year"`
-	ProgramStudy string `json: "program_study"`
+	AcademicYear string `json:"academic_year"`
+	ProgramStudy string `json:"program_study"`
 	Username     string `json:"username"`
 	Email        string `json:"email"`
 	Fullname     string `json:"full_name"`

@@ -5,14 +5,14 @@ type User struct {
 	Username  string `json:"username"`
 	Email     string `json:"email"`
 	Password  string `json:"password_hash"`
-	RoleID    string `json: "role_id"`
+	RoleID    string `json:"role_id"`
 	Fullname  string `json:"full_name"` // foreign ke table roles
 	Is_active bool   `json:"is_active"`
 }
 
 type Profile struct {
-	username string `json:"username"`
-	fullname string `json:"full_name"`
+	Username string `json:"username"`
+	Fullname string `json:"full_name"`
 	Email    string `json:"email"`
 }
 
