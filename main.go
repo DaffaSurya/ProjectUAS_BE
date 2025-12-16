@@ -74,11 +74,13 @@ func main() {
 	AchieveService := service.NewAchievementService(AchieveRepo)
 	LectureRepo := repository.NewLecturesRepository(pgDB)
 	Lectureservice := service.NewLecturesService(LectureRepo)
+	ReportRepo := repository.NewReportRepository(pgDB)
+	ReportService := service.NewReportService(ReportRepo)
 
 	// ===============================
 	// 🟨 Setup Routes
 	// ===============================
-	routes.SetupRoutes(app, authService, Studentservice, AchieveService, Lectureservice)
+	routes.SetupRoutes(app, authService, Studentservice, AchieveService, Lectureservice, ReportService)
 
 	// ===============================
 	// 🟨 Run Server

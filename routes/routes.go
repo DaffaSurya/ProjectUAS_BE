@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservice *service.Studentservice, AchieveService *service.AchievementService, LectureService *service.LecturesService) {
+func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservice *service.Studentservice, AchieveService *service.AchievementService, LectureService *service.LecturesService, ReportService *service.ReportService) {
 	api := app.Group("/api")
 
 	// authentication Route
@@ -53,7 +53,8 @@ func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservic
 	api.Get("/lecturers", LectureService.GetLectures)
 	api.Get("/lecturers/:id/advisees", LectureService.Getadvisees)
 
-
 	// report and analytics
-
+	api.Use(middleware.AuthRequired())
+	api.Get("/reports/statics", ReportService.GetStatics)
+	api.Get("/reports/student/:id", ReportService.GetStudentReport)
 }

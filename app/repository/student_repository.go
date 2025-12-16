@@ -20,9 +20,9 @@ type StudentPostgres struct {
 	DB *sql.DB
 }
 
-func NewStudentRepository(db *sql.DB) StudentRepository {
-	return &StudentPostgres{DB: db}
-}
+	func NewStudentRepository(db *sql.DB) StudentRepository {
+		return &StudentPostgres{DB: db}
+	}
 
 func (r *StudentPostgres) CreateStudent(userID string) error {
 	query := `
@@ -180,3 +180,5 @@ func (r *StudentPostgres) UpdateAdvisor(ctx context.Context, studentID string, a
 
 	return nil
 }
+
+
