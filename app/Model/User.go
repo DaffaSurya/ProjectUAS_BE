@@ -15,3 +15,6 @@ type Profile struct {
 	fullname string `json:"full_name"`
 	Email    string `json:"email"`
 }
+
+
+

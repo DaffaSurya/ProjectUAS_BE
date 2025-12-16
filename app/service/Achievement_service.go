@@ -6,6 +6,8 @@ import (
 	"PROJECTUAS_BE/middleware"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -86,12 +88,8 @@ func (s *AchievementService) CreateAchievements(c *fiber.Ctx) error {
 	input.StudentID = studentId.(string)
 	input.CreatedAt = time.Now()
 
-	// Save to repo
-	// err := s.Repo.Create(context.Background(), input)
 	err := s.Repo.Create(context.Background(), input)
-	// if err != nil {
-	// 	return fiber.NewError(fiber.StatusInternalServerError, "Failed to save achievement")
-	// }
+
 	if err != nil {
 		fmt.Println("ERROR SAVE ACHIEVEMENT:", err) // debug log
 
@@ -167,7 +165,7 @@ func (s *AchievementService) UpdateAchievement(c *fiber.Ctx) error {
 }
 
 func (s *AchievementService) DeleteAchievement(c *fiber.Ctx) error {
-	
+
 	claims := c.Locals("claims")
 
 	fmt.Println("CLAIMS IN SERVICE:", claims) // debugging
@@ -202,5 +200,117 @@ func (s *AchievementService) DeleteAchievement(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"message": "achievement deleted successfully",
+	})
+}
+
+func (s *AchievementService) GetStudentAchievements(c *fiber.Ctx) error {
+
+	claims := c.Locals("claims")
+
+	fmt.Println("CLAIMS IN SERVICE:", claims) // debugging
+	if claims == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	userClaims := claims.(*middleware.Claims)
+
+	// Hanya admin yang bisa
+	if userClaims.Role != "mahasiswa" {
+		return fiber.NewError(fiber.StatusForbidden, "Access ditolak, hanya mahasiswa yang boleh mengakses")
+	}
+
+	studentID := userClaims.UserID
+	if studentID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Student ID not found")
+	}
+
+	// ===== 3. Fetch Data =====
+	achievements, err := s.Repo.GetStudentByAchievement(
+		context.Background(),
+		studentID,
+	)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch achievements")
+	}
+
+	// ===== 4. Response =====
+	return c.JSON(fiber.Map{
+		"message": "Student achievements fetched successfully",
+		"total":   len(achievements),
+		"data":    achievements,
+	})
+}
+
+func (s *AchievementService) UploadAttachments(c *fiber.Ctx) error {
+	claims := c.Locals("claims")
+
+	fmt.Println("CLAIMS IN SERVICE:", claims) // debugging
+	if claims == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	userClaims := claims.(*middleware.Claims)
+
+	// Hanya admin yang bisa
+	if userClaims.Role != "mahasiswa" {
+		return fiber.NewError(fiber.StatusForbidden, "Access ditolak, hanya mahasiswa yang boleh mengakses")
+	}
+
+	achievementID := c.Params("id")
+	if achievementID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Achievement ID is required")
+	}
+
+	// ===== 3. Check ownership =====
+	achievement, err := s.Repo.FindById(context.Background(), achievementID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "Achievment not found")
+	}
+
+	if achievement.StudentID != userClaims.UserID {
+		return fiber.NewError(fiber.StatusForbidden, "You can only upload to your own achievement")
+	}
+
+	// ===== 4. Get file =====
+	file, err := c.FormFile("file")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "File is required")
+	}
+
+	// ===== 5. Save file =====
+	uploadDir := "./uploads/achievements"
+	os.MkdirAll(uploadDir, os.ModePerm)
+
+	ext := filepath.Ext(file.Filename)
+	fileName := uuid.New().String() + ext
+	filePath := filepath.Join(uploadDir, fileName)
+
+	if err := c.SaveFile(file, filePath); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to save file")
+	}
+
+	// ===== 6. Save metadata =====
+	attachment := model.Attachment{
+		FileName:   file.Filename,
+		FileUrl:    "/uploads/achievements/" + fileName,
+		FileType:   file.Header.Get("Content-Type"),
+		UploadedAt: time.Now(),
+	}
+
+	err = s.Repo.AddAttachment(
+		context.Background(),
+		achievementID,
+		attachment,
+	)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to save attachment")
+	}
+
+	// ===== 7. Response =====
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Attachment uploaded successfully",
+		"data":    attachment,
 	})
 }

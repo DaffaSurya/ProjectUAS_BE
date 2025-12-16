@@ -17,6 +17,8 @@ type AchievementRepository interface {
 	FindById(ctx context.Context, id string) (*model.Achievement, error)
 	Update(ctx context.Context, id string, update bson.M) error
 	Delete(ctx context.Context, id string) error
+	GetStudentByAchievement(ctx context.Context, studentID string) ([]*model.Achievement, error)
+	AddAttachment(ctx context.Context, achievementID string, attachment model.Attachment) error
 }
 
 type AchievementMongoDB struct {
@@ -101,5 +103,43 @@ func (r *AchievementMongoDB) Delete(ctx context.Context, id string) error {
 	}
 
 	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": objID})
+	return err
+}
+
+func (r *AchievementMongoDB) GetStudentByAchievement(ctx context.Context, studentID string) ([]*model.Achievement, error) {
+	filter := bson.M{
+		"studentId": studentID,
+	}
+
+	cursor, err := r.Collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var achievements []*model.Achievement
+	if err := cursor.All(ctx, &achievements); err != nil {
+		return nil, err
+	}
+
+	return achievements, nil
+}
+
+func (r *AchievementMongoDB) AddAttachment(ctx context.Context, achievementID string, attachment model.Attachment) error {
+	update := bson.M{
+		"$push": bson.M{
+			"attachments": attachment,
+		},
+		"$set": bson.M{
+			"updatedAt": attachment.UploadedAt,
+		},
+	}
+
+	_, err := r.Collection.UpdateOne(
+		ctx,
+		bson.M{"_id": achievementID},
+		update,
+	)
+
 	return err
 }

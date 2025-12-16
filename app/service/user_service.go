@@ -227,27 +227,6 @@ func (s *AuthService) CreateUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to hash password")
 	}
 
-	// =============== Simpan ke database ===============
-	// err = s.Repo.CreateUser(body.Username, body.Email, string(hashed), body.RoleID, body.Fullname)
-	// if err != nil {
-	// 	return fiber.NewError(fiber.StatusInternalServerError, "Failed to create user")
-	// }
-
-	// // 2️⃣ Cek role name berdasarkan role_id
-	// roleName, err := s.Repo.GetRoleByUserID(body.RoleID)
-	// if err != nil {
-	// 	return fiber.NewError(fiber.StatusBadRequest, "Invalid role ID")
-	// }
-
-	// // 3️⃣ Jika role mahasiswa → insert ke students table
-	// if roleName == "student" || roleName == "mahasiswa" {
-
-	// 	err := s.repo.CreateStudent(userClaims.UserID)
-	// 	if err != nil {
-	// 		return fiber.NewError(fiber.StatusInternalServerError, "User created but failed to insert student")
-	// 	}
-	// }
-
 	userID, err := s.Repo.CreateUser(body.Username, body.Email, string(hashed), body.RoleID, body.Fullname)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to create user")

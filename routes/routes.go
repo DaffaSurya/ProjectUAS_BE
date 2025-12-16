@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservice *service.Studentservice, AchieveService *service.AchievementService) {
+func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservice *service.Studentservice, AchieveService *service.AchievementService, LectureService *service.LecturesService) {
 	api := app.Group("/api")
 
 	// authentication Route
@@ -28,13 +28,24 @@ func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservic
 	api.Get("/achievements", AchieveService.GetAllAchievements)
 	api.Get("/achievements/:id", AchieveService.GetAchievementsByID)
 
-	api.Use(middleware.AuthRequired()) // melindungi agar hanya admin yang bisa mengakses
+	api.Use(middleware.AuthRequired()) // melindungi agar hanya mahasiswa yang bisa mengakses
 	api.Post("/achievements", AchieveService.CreateAchievements)
 	api.Put("/achievements/:id", AchieveService.UpdateAchievement)
 	api.Delete("/achievements/:id", AchieveService.DeleteAchievement)
+	api.Post("/achievements/:id/submit", Studentservice.SubmitAchievement)
 
+	api.Use(middleware.AuthRequired()) // melindungi agar hanya dosen wali yang bisa mengakses
+	api.Post("/achievements/:id/verify", LectureService.VerifyAchievement)
+	api.Post("/achievements/:id/Reject", LectureService.RejectAchievement)
+
+	api.Post("/achievements/:id/history", LectureService.GetHistory)
+
+	api.Post("/achievements/:id/Attachment", AchieveService.UploadAttachments)
+	
 	// students
 	api.Get("/student/:id", Studentservice.GetStudent)
 	api.Get("/student", Studentservice.GetAllStudents)
-
+	api.Get("/student/:id/achievement", AchieveService.GetStudentAchievements)
+	
+	
 }

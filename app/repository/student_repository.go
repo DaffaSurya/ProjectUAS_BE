@@ -2,6 +2,7 @@ package repository
 
 import (
 	model "PROJECTUAS_BE/app/Model"
+	"context"
 	"database/sql"
 	"errors"
 )
@@ -10,13 +11,15 @@ type StudentRepository interface {
 	CreateStudent(userID string) error
 	GetStudentByUserID(userID string) (*model.Student, error)
 	GetAllStudents() ([]model.Student, error)
+	Submit(ctx context.Context, ref *model.AchievementReference) error
+	GetStudentIDByUserID(ctx context.Context, userID string) (string, error)
 }
 
 type StudentPostgres struct {
 	DB *sql.DB
 }
 
-func NewStudentRepository(db *sql.DB) *StudentPostgres {
+func NewStudentRepository(db *sql.DB) StudentRepository {
 	return &StudentPostgres{DB: db}
 }
 
@@ -39,7 +42,7 @@ func (r *StudentPostgres) GetAllStudents() ([]model.Student, error) {
 			u.username,
 			u.full_name,
 			u.email
-		FROM students s
+		FROM students s	
 		JOIN users u ON u.id = s.user_id
 	`
 
@@ -115,3 +118,42 @@ func (r *StudentPostgres) GetStudentByUserID(userID string) (*model.Student, err
 
 	return &student, nil
 }
+
+func (r *StudentPostgres) Submit(ctx context.Context, ref *model.AchievementReference) error {
+	query := `
+        INSERT INTO achievement_references 
+        (id, student_id, mongo_achievement_id, status, submitted_at)
+        VALUES  ($1, $2, $3, $4, $5)`
+
+	_, err := r.DB.ExecContext(
+		ctx,
+		query,
+		ref.ID,
+		ref.StudentID,
+		ref.MongoAchievementID,
+		ref.Status,
+		ref.SubmittedAt,
+	)
+
+	return err
+}
+
+func (r *StudentPostgres) GetStudentIDByUserID(ctx context.Context, userID string) (string, error) {
+	var studentID string
+
+	query := `
+		SELECT id
+		FROM students
+		WHERE user_id = $1
+	`
+
+	err := r.DB.QueryRowContext(ctx, query, userID).Scan(&studentID)
+	if err != nil {
+		return "", err
+	}
+
+	return studentID, nil
+}
+
+
+
