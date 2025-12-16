@@ -10,6 +10,8 @@ type LecturesRepository interface {
 	Verify(ctx context.Context, mongoAchievementID string, status string, verifiedBy string, reason *string) error
 	Reject(ctx context.Context, mongoAchievementID string, reason string, rejectedBy string) error
 	GetHistory(ctx context.Context, mongoAchievementID string) ([]*model.AchievementHistory, error)
+	GetallLectures(ctx context.Context) ([]*model.LecturerResponse, error)
+	Getadvisees(ctx context.Context, lecturerID string) ([]*model.AdviseeResponse, error)
 }
 
 type lecturePostGres struct {
@@ -128,4 +130,80 @@ func (r *lecturePostGres) GetHistory(ctx context.Context, mongoAchievementID str
 
 }
 
+func (r *lecturePostGres) GetallLectures(ctx context.Context) ([]*model.LecturerResponse, error) {
+	query := `
+		SELECT
+			l.id,
+			l.user_id,
+			l.department,
+			u.username,
+			u.email,
+			u.full_name
+		FROM lecturers l
+		JOIN users u ON u.id = l.user_id
+		ORDER BY u.full_name ASC
+	`
 
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var lecturers []*model.LecturerResponse
+
+	for rows.Next() {
+		var l model.LecturerResponse
+		if err := rows.Scan(
+			&l.ID,
+			&l.UserID,
+			&l.Department,
+			&l.Username,
+			&l.Email,
+			&l.FullName,
+		); err != nil {
+			return nil, err
+		}
+		lecturers = append(lecturers, &l)
+	}
+
+	return lecturers, nil
+}
+
+func (r *lecturePostGres) Getadvisees(ctx context.Context, lecturerID string) ([]*model.AdviseeResponse, error) {
+
+	query := `
+		SELECT 
+			s.id,
+			s.username,
+			u.email,
+			u.fullname
+		FROM students s
+		JOIN users u ON u.id = s.user_id
+		WHERE s.advisor_id = $1
+		ORDER BY u.fullname ASC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, lecturerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*model.AdviseeResponse
+
+	for rows.Next() {
+		var a model.AdviseeResponse
+		if err := rows.Scan(
+			&a.ID,
+			&a.Username,
+			&a.Email,
+			&a.Fullname,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, &a)
+	}
+
+	return result, nil
+}

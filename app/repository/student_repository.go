@@ -13,6 +13,7 @@ type StudentRepository interface {
 	GetAllStudents() ([]model.Student, error)
 	Submit(ctx context.Context, ref *model.AchievementReference) error
 	GetStudentIDByUserID(ctx context.Context, userID string) (string, error)
+	UpdateAdvisor(ctx context.Context, studentID string, advisorID string) error
 }
 
 type StudentPostgres struct {
@@ -155,5 +156,27 @@ func (r *StudentPostgres) GetStudentIDByUserID(ctx context.Context, userID strin
 	return studentID, nil
 }
 
+func (r *StudentPostgres) UpdateAdvisor(ctx context.Context, studentID string, advisorID string) error {
+	query := `
+		UPDATE students
+		SET advisor_id = $1
+		WHERE id = $2
+	`
 
+	result, err := r.DB.ExecContext(
+		ctx,
+		query,
+		advisorID,
+		studentID,
+	)
+	if err != nil {
+		return err
+	}
 
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}

@@ -10,3 +10,7 @@ type Student struct {
 	Fullname     string `json:"full_name"`
 	RoleID       string `json:"role_id"` // digunakan agar ketika user menambahkan role mahasiswa , table student terisi otomatis dibagian user_id
 }
+
+type StudentAdvisorRequest struct {
+	AdvisorId string `json:"advisor_id"`
+}

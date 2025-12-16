@@ -26,7 +26,7 @@ func (s *LecturesService) VerifyAchievement(c *fiber.Ctx) error {
 	}
 
 	userClaims := claims.(*middleware.Claims)
-	if userClaims.Role != "dosen_wali" {
+	if userClaims.Role != "dosen" {
 		return fiber.NewError(
 			fiber.StatusForbidden,
 			"Only dosen wali can verify achievements",
@@ -105,7 +105,7 @@ func (s *LecturesService) RejectAchievement(c *fiber.Ctx) error {
 	}
 
 	userClaims := claims.(*middleware.Claims)
-	if userClaims.Role != "dosen_wali" {
+	if userClaims.Role != "dosen" {
 		return fiber.NewError(
 			fiber.StatusForbidden,
 			"Only dosen wali can verify achievements",
@@ -159,7 +159,7 @@ func (s *LecturesService) RejectAchievement(c *fiber.Ctx) error {
 	})
 }
 
-func (s *LecturesService) GetHistory(c *fiber.Ctx) error {  // Get History bisa diakses oleh admin , student dan dosen wali
+func (s *LecturesService) GetHistory(c *fiber.Ctx) error { // Get History bisa diakses oleh admin , student dan dosen wali
 
 	claims := c.Locals("claims")
 	if claims == nil {
@@ -187,15 +187,74 @@ func (s *LecturesService) GetHistory(c *fiber.Ctx) error {  // Get History bisa 
 		return fiber.NewError(fiber.StatusNotFound, "No history found")
 	}
 
-		if userClaims.Role == "mahasiswa" {
+	if userClaims.Role == "mahasiswa" {
 		if histories[0].StudentID != userClaims.UserID {
 			return fiber.NewError(fiber.StatusForbidden, "Access denied")
 		}
 	}
-	return c.JSON(fiber.Map{  // response
+	return c.JSON(fiber.Map{ // response
 		"message": "Achievement history fetched successfully",
 		"data":    histories,
 	})
 }
 
+func (s *LecturesService) GetLectures(c *fiber.Ctx) error {
+	lecturers, err := s.Repo.GetallLectures(context.Background())
+	if err != nil {
+		return fiber.NewError(
+			fiber.StatusInternalServerError,
+			"Failed to fetch lecturers",
+		)
+	}
 
+	return c.JSON(fiber.Map{
+		"message": "Lecturers fetched successfully",
+		"total":   len(lecturers),
+		"data":    lecturers,
+	})
+}
+
+func (s *LecturesService) Getadvisees(c *fiber.Ctx) error {
+	claims := c.Locals("claims")
+	if claims == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	userClaims := claims.(*middleware.Claims)
+
+	lecturerID := c.Params("id")
+	if lecturerID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Lecturer ID is required")
+	}
+
+	switch userClaims.Role {
+	case "admin", "mahasiswa":
+		// allowed
+	case "dosen":
+		// dosen hanya boleh lihat mahasiswa bimbingannya sendiri
+		if userClaims.UserID != lecturerID {
+			return fiber.NewError(fiber.StatusForbidden, "Access denied")
+		}
+	default:
+		return fiber.NewError(fiber.StatusForbidden, "Access denied")
+	}
+
+	// ===== 4. Get Data =====
+	students, err := s.Repo.Getadvisees(
+		context.Background(),
+		lecturerID,
+	)
+	if err != nil {
+		return fiber.NewError(
+			fiber.StatusInternalServerError,
+			"Failed to get advisees",
+		)
+	}
+
+	// ===== 5. Response =====
+	return c.JSON(fiber.Map{
+		"lecturer_id": lecturerID,
+		"total":       len(students),
+		"students":    students,
+	})
+}

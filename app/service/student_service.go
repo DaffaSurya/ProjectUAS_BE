@@ -5,6 +5,7 @@ import (
 	"PROJECTUAS_BE/app/repository"
 	"PROJECTUAS_BE/middleware"
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
@@ -129,6 +130,54 @@ func (s *Studentservice) SubmitAchievement(c *fiber.Ctx) error {
 			"mongo_achievement_id": ref.MongoAchievementID,
 			"status":               ref.Status,
 			"submitted_at":         ref.SubmittedAt,
+		},
+	})
+}
+
+func (s *Studentservice) UpdateAdvisor(c *fiber.Ctx) error {
+	claims := c.Locals("claims")
+	if claims == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	userClaims := claims.(*middleware.Claims)
+
+	// ===== 2. Role Check =====
+	if userClaims.Role != "admin" {
+		return fiber.NewError(fiber.StatusForbidden, "Access denied")
+	}
+
+	studentID := c.Params("id")
+	if studentID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Student ID is required")
+	}
+
+	// ===== 4. Body =====
+	var req model.StudentAdvisorRequest
+	if err := c.BodyParser(&req); err != nil || req.AdvisorId == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Advisor ID is required")
+	}
+
+	// ===== 5. Update =====
+	err := s.repo.UpdateAdvisor(
+		context.Background(),
+		studentID,
+		req.AdvisorId,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fiber.NewError(fiber.StatusNotFound, "Student not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to update advisor")
+	}
+
+	// ===== 6. Response =====
+	return c.JSON(fiber.Map{
+		"message": "Advisor updated successfully",
+		"data": fiber.Map{
+			"student_id": studentID,
+			"advisor_id": req.AdvisorId,
 		},
 	})
 }

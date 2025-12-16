@@ -41,11 +41,19 @@ func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservic
 	api.Post("/achievements/:id/history", LectureService.GetHistory)
 
 	api.Post("/achievements/:id/Attachment", AchieveService.UploadAttachments)
-	
-	// students
+
+	// students and Lecturers
 	api.Get("/student/:id", Studentservice.GetStudent)
 	api.Get("/student", Studentservice.GetAllStudents)
+
+	api.Use(middleware.AuthRequired())
 	api.Get("/student/:id/achievement", AchieveService.GetStudentAchievements)
-	
-	
+	api.Put("student/:id/advisor", Studentservice.UpdateAdvisor)
+	// lectures
+	api.Get("/lecturers", LectureService.GetLectures)
+	api.Get("/lecturers/:id/advisees", LectureService.Getadvisees)
+
+
+	// report and analytics
+
 }
