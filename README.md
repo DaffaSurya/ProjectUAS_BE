@@ -32,6 +32,8 @@ Progress ke 6:
 Hari selasa tanggal 16 desember 2025:
 - finish Achievements features
 - implementation middleware student and dosen wali
+- implementation advisor and advisees
+- create report and statics features
 
 
 
