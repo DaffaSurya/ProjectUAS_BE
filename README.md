@@ -35,5 +35,10 @@ Hari selasa tanggal 16 desember 2025:
 - implementation advisor and advisees
 - create report and statics features
 
+Progress ke 7:
+Hari Rabu tanggal 17 desember 2025:
+- Implementasi Function Testing
+- improvements to the repository and authentication service
+
 
 
