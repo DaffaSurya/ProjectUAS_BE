@@ -35,7 +35,6 @@ func main() {
 	defer pgDB.Close()
 	fmt.Println("PostgreSQL Connected via config.ConnectPG()")
 
-	
 	// ===============================
 	// 🟨 Connect to MongoDB
 	// ===============================
@@ -67,7 +66,9 @@ func main() {
 	db := client.Database(dbName)
 	app := fiber.New()
 	userRepo := repository.NewUserRepository(pgDB)
-	authService := service.NewAuthService(userRepo)
+	UserService := service.NewUserService(userRepo)
+	AuthRepo := repository.NewAuthRepository(pgDB)
+	AuthService := service.NewAuthService(AuthRepo)
 	studentRepo := repository.NewStudentRepository(pgDB)
 	Studentservice := service.NewAStudentService(studentRepo)
 	AchieveRepo := repository.NewAchievementMongo(db)
@@ -80,7 +81,7 @@ func main() {
 	// ===============================
 	// 🟨 Setup Routes
 	// ===============================
-	routes.SetupRoutes(app, authService, Studentservice, AchieveService, Lectureservice, ReportService)
+	routes.SetupRoutes(app, UserService, Studentservice, AchieveService, Lectureservice, ReportService, AuthService)
 
 	// ===============================
 	// 🟨 Run Server

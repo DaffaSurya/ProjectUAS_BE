@@ -7,22 +7,22 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, authservice *service.AuthService, Studentservice *service.Studentservice, AchieveService *service.AchievementService, LectureService *service.LecturesService, ReportService *service.ReportService) {
+func SetupRoutes(app *fiber.App, Userservice *service.UserService, Studentservice *service.Studentservice, AchieveService *service.AchievementService, LectureService *service.LecturesService, ReportService *service.ReportService, AuthService *service.AuthService) {
 	api := app.Group("/api")
 
 	// authentication Route
-	api.Post("/login", authservice.Login)
-	api.Get("/Getprofile", middleware.AuthRequired(), authservice.GetProfile)
-	api.Post("/logout", middleware.AuthRequired(), authservice.Logout)
+	api.Post("/login", AuthService.Login)
+	api.Get("/Getprofile", middleware.AuthRequired(), AuthService.GetProfile)
+	api.Post("/logout", middleware.AuthRequired(), AuthService.Logout)
 	// authentication route
 
 	// users route
 	api.Use(middleware.AuthRequired()) // melindungi agar hanya admin yang bisa mengakses
-	api.Get("/users", authservice.GetAllUsers)
-	api.Get("/users/:id", authservice.GetUsersByID)
-	api.Post("/users", authservice.CreateUser)
-	api.Put("/users/:id", authservice.UpdateUserByID)
-	api.Delete("/users/:id", authservice.DeleteUserByID)
+	api.Get("/users", Userservice.GetAllUsers)
+	api.Get("/users/:id", Userservice.GetUsersByID)
+	api.Post("/users", Userservice.CreateUser)
+	api.Put("/users/:id", Userservice.UpdateUserByID)
+	api.Delete("/users/:id", Userservice.DeleteUserByID)
 
 	// achievement
 	api.Get("/achievements", AchieveService.GetAllAchievements)

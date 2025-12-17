@@ -4,121 +4,19 @@ import (
 	"PROJECTUAS_BE/app/repository"
 	"PROJECTUAS_BE/middleware"
 	"fmt"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService struct {
+type UserService struct {
 	Repo repository.UserRepository
 	repo repository.StudentPostgres
 }
 
-func NewAuthService(repo repository.UserRepository) *AuthService {
-	return &AuthService{Repo: repo}
-}
-
-func (s *AuthService) LoginService(email, password string) (string, error) {
-
-	// Ambil user berdasarkan email
-	user, err := s.Repo.FindByEmail(email)
-	if err != nil || user == nil {
-		return "", fiber.NewError(fiber.StatusUnauthorized, "Invalid email or password")
-	}
-
-	// Cek password bcrypt
-	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
-		return "", fiber.NewError(fiber.StatusUnauthorized, "Invalid email or password")
-	}
-
-	// Ambil role user berdasarkan tabel role_permissions
-	role, err := s.Repo.GetRoleByUserID(user.ID)
-	// role, err := s.Repo.GetRoleNameByRoleID(user.ID)
-	if err != nil {
-		return "", fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch user role")
-	}
-
-	// Generate JWT termasuk role
-	token, err := middleware.GenerateToken(
-		user.ID,
-		user.Username,
-		user.Email,
-		role,       // <-- pastikan diisi role
-		[]string{}, // permissions jika diperlukan
-	)
-
-	if err != nil {
-		return "", fiber.NewError(fiber.StatusInternalServerError, "Failed to generate token")
-	}
-
-	return token, nil
-}
-
-func (s *AuthService) Login(c *fiber.Ctx) error {
-	var body struct {
-		Email    string `json:"email"`
-		Password string `json:"password_hash"`
-	}
-
-	if err := c.BodyParser(&body); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "Invalid input"})
-	}
-
-	// Panggil logic
-	token, err := s.LoginService(body.Email, body.Password)
-	if err != nil {
-		return c.Status(401).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return c.JSON(fiber.Map{"token": token})
-}
-
-func (s *AuthService) GetProfile(c *fiber.Ctx) error {
-	// Ambil claims dari middleware
-	claimsData := c.Locals("claims")
-
-	fmt.Println("DEBUG Authorization Header:", c.Get("Authorization")) // debugging session
-	fmt.Println("DEBUG c.Locals(\"claims\"):", claimsData)
-
-	if claimsData == nil {
-		return c.Status(401).JSON(fiber.Map{"error": "Unauthorized"})
-	}
-
-	claims, ok := claimsData.(*middleware.Claims)
-	if !ok {
-		return c.Status(401).JSON(fiber.Map{"error": "Invalid token data"})
-	}
-
-	// Query database by user_id
-	user, err := s.Repo.GetProfile(claims.UserID)
-	if err != nil {
-		return c.Status(404).JSON(fiber.Map{"error": "User not found"})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"success": true,
-		"data": fiber.Map{
-			"username": user.Username,
-			"fullname": user.Fullname,
-			"email":    user.Email,
-		},
-	})
-}
-
-func (s *AuthService) Logout(c *fiber.Ctx) error {
-	authHeader := c.Get("Authorization")
-	tokenStr := strings.Split(authHeader, " ")[1]
-
-	claims := c.Locals("claims").(*middleware.Claims)
-
-	// masukkan token ke blacklist dengan expiry JWT
-	middleware.BlacklistToken(tokenStr, claims.ExpiresAt.Time)
-
-	return c.JSON(fiber.Map{
-		"message": "Logout successful",
-	})
+func NewUserService(repo repository.UserRepository) *UserService {
+	return &UserService{Repo: repo}
 }
 
 // ==================================
@@ -126,7 +24,7 @@ func (s *AuthService) Logout(c *fiber.Ctx) error {
 //	GET ALL USERS (ADMIN)
 //
 // ==================================
-func (s *AuthService) GetAllUsers(c *fiber.Ctx) error {
+func (s *UserService) GetAllUsers(c *fiber.Ctx) error {
 
 	// Ambil claims dari middleware
 	claims := c.Locals("claims")
@@ -154,7 +52,7 @@ func (s *AuthService) GetAllUsers(c *fiber.Ctx) error {
 	})
 }
 
-func (s *AuthService) GetUsersByID(c *fiber.Ctx) error {
+func (s *UserService) GetUsersByID(c *fiber.Ctx) error {
 
 	// ambil id dari parameter repository
 	id := c.Params("id")
@@ -191,7 +89,7 @@ func (s *AuthService) GetUsersByID(c *fiber.Ctx) error {
 	})
 }
 
-func (s *AuthService) CreateUser(c *fiber.Ctx) error {
+func (s *UserService) CreateUser(c *fiber.Ctx) error {
 	claims := c.Locals("claims")
 	if claims == nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
@@ -259,7 +157,7 @@ func (s *AuthService) CreateUser(c *fiber.Ctx) error {
 
 }
 
-func (s *AuthService) UpdateUserByID(c *fiber.Ctx) error {
+func (s *UserService) UpdateUserByID(c *fiber.Ctx) error {
 	// Ambil UUID dari URL
 	id := c.Params("id")
 	if id == "" {
@@ -306,7 +204,7 @@ func (s *AuthService) UpdateUserByID(c *fiber.Ctx) error {
 	})
 }
 
-func (s *AuthService) DeleteUserByID(c *fiber.Ctx) error {
+func (s *UserService) DeleteUserByID(c *fiber.Ctx) error {
 	// Ambil UUID dari URL
 	id := c.Params("id")
 	if id == "" {
